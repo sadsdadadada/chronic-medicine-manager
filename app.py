@@ -444,8 +444,8 @@ def api_visit_note(medicine_id):
         days_left(med["visit_date"])
     )
     return jsonify({"note": note})
-
-    init_db()
+    
+init_db()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
