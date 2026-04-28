@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card wide">
+    <div class="auth-logo">💊</div>
+    <h1>创建用药管理账号</h1>
+    <p>本作品支持真实注册、登录和本地 SQLite 数据库存储。</p>
+
+    <form method="post" class="auth-form grid-form">
+      <div>
+        <label>账号</label>
+        <input name="username" placeholder="例如：wangayi" required>
+      </div>
+
+      <div>
+        <label>密码</label>
+        <input name="password" type="password" placeholder="至少 6 位" required>
+      </div>
+
+      <div>
+        <label>昵称</label>
+        <input name="nickname" placeholder="例如：王阿姨">
+      </div>
+
+      <div>
+        <label>年龄</label>
+        <input name="age" type="number" min="0" placeholder="例如：58">
+      </div>
+
+      <div class="full">
+        <label>慢病情况</label>
+        <input name="diseases" placeholder="例如：高血压、2型糖尿病、血脂异常">
+      </div>
+
+      <button class="btn btn-primary full" type="submit">注册并进入</button>
+    </form>
+
+    <div class="auth-switch">
+      已有账号？<a href="{{ url_for('login') }}">去登录</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

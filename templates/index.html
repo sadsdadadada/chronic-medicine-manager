@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">💊</div>
+      <div>
+        <h1>慢病用药<br>小管家</h1>
+        <p>用药 · 复购 · 续方闭环管理</p>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="#dashboard" class="active">📊 首页看板</a>
+      <a href="#add">📝 添加用药</a>
+      <a href="#checkin">✅ 今日打卡</a>
+      <a href="#refill">🔔 续方复诊</a>
+      <a href="#record">📈 用药记录</a>
+    </nav>
+
+    <div class="side-card">
+      <strong>创新点</strong>
+      <p>不是普通闹钟，而是把“复诊开药—用药打卡—库存消耗—复购续方—复诊准备”连成一个真实可运行闭环。</p>
+    </div>
+
+    <a class="logout" href="{{ url_for('logout') }}">退出登录</a>
+  </aside>
+
+  <main class="main">
+    <section class="hero" id="dashboard">
+      <div>
+        <h2>你好，{{ user.nickname or user.username }}</h2>
+        <p>{{ user.age }} 岁｜{{ user.diseases or "暂未填写慢病信息" }}</p>
+      </div>
+      <div class="date-pill">今天：{{ today }}</div>
+    </section>
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <span>今日完成</span>
+        <strong>{{ done }}/{{ total }}</strong>
+        <p>待完成 {{ pending }} 项，漏服 {{ missed }} 项</p>
+      </div>
+      <div class="stat-card green">
+        <span>今日依从率</span>
+        <strong>{{ adherence }}%</strong>
+        <p>依据今日打卡情况实时计算</p>
+      </div>
+      <div class="stat-card orange">
+        <span>库存预警</span>
+        <strong>{{ warning_count }}</strong>
+        <p>剩余天数低于阈值的药品</p>
+      </div>
+      <div class="stat-card red">
+        <span>最近复诊</span>
+        <strong>{{ nearest_visit }}天</strong>
+        <p>建议提前预约线上复诊</p>
+      </div>
+    </section>
+
+    <section class="two-col">
+      <div class="card">
+        <div class="card-title">
+          <h3>今日用药任务</h3>
+          <span>实时交互</span>
+        </div>
+
+        {% if medicines %}
+          <div class="task-list">
+            {% for med in medicines %}
+            <div class="task-item">
+              <div>
+                <h4>{{ med.take_time }}｜{{ med.name }}</h4>
+                <p>{{ med.disease }}｜每次 {{ med.dose }}｜{{ med.relation_to_meal }}</p>
+              </div>
+              {% if med.today_status == "done" %}
+                <span class="tag green">已服用</span>
+              {% elif med.today_status == "missed" %}
+                <span class="tag red">已漏服</span>
+              {% else %}
+                <span class="tag orange">待服用</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty">还没有用药计划，请先添加药品。</div>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h3>AI 风险提醒</h3>
+          <span>产品亮点</span>
+        </div>
+        <div class="ai-advice">
+          <b>🤖 今日建议</b>
+          <p>{{ ai_advice }}</p>
+        </div>
+        <div class="ai-advice light">
+          <b>🧾 复诊准备</b>
+          <p>复诊时建议携带：近 7 天打卡记录、剩余药量、血压/血糖指标、身体不适反馈。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="two-col" id="add">
+      <div class="card">
+        <div class="card-title">
+          <h3>添加用药计划</h3>
+          <span>写入数据库</span>
+        </div>
+
+        <form method="post" action="{{ url_for('add_medicine') }}" class="grid-form">
+          <div>
+            <label>药品名称</label>
+            <input name="name" required placeholder="例如：二甲双胍缓释片">
+          </div>
+          <div>
+            <label>对应疾病</label>
+            <select name="disease" required>
+              <option>高血压</option>
+              <option>2型糖尿病</option>
+              <option>血脂异常</option>
+              <option>甲状腺疾病</option>
+              <option>哮喘</option>
+              <option>其他慢病</option>
+            </select>
+          </div>
+          <div>
+            <label>每次剂量</label>
+            <input name="dose" required placeholder="例如：1片 / 0.5g">
+          </div>
+          <div>
+            <label>服药时间</label>
+            <input name="take_time" required placeholder="例如：08:00">
+          </div>
+          <div>
+            <label>饭前/饭后</label>
+            <select name="relation_to_meal">
+              <option>早餐后</option>
+              <option>午餐后</option>
+              <option>晚餐后</option>
+              <option>睡前</option>
+              <option>饭前</option>
+              <option>遵医嘱</option>
+            </select>
+          </div>
+          <div>
+            <label>当前库存</label>
+            <input name="stock" type="number" min="0" required placeholder="例如：30">
+          </div>
+          <div>
+            <label>每日消耗</label>
+            <input name="daily_use" type="number" min="1" required value="1">
+          </div>
+          <div>
+            <label>提醒阈值</label>
+            <input name="threshold" type="number" min="1" required value="7">
+          </div>
+          <div>
+            <label>下次复诊日期</label>
+            <input name="visit_date" type="date" required>
+          </div>
+          <div class="full">
+            <label>医生建议</label>
+            <textarea name="doctor_note" placeholder="例如：每日固定时间服用，复诊时携带近一周血压记录。"></textarea>
+          </div>
+          <button class="btn btn-primary full" type="submit">保存到数据库</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h3>我的用药计划</h3>
+          <span>{{ total }} 种药</span>
+        </div>
+
+        {% if medicines %}
+          <div class="medicine-list">
+          {% for med in medicines %}
+            <div class="medicine-card">
+              <div class="medicine-head">
+                <div>
+                  <h4>{{ med.name }}</h4>
+                  <p>{{ med.disease }}｜{{ med.take_time }}｜每次 {{ med.dose }}</p>
+                </div>
+                {% if med.stock_days <= 3 %}
+                  <span class="tag red">高风险</span>
+                {% elif med.stock_days <= med.threshold %}
+                  <span class="tag orange">需复购</span>
+                {% else %}
+                  <span class="tag green">充足</span>
+                {% endif %}
+              </div>
+              <p class="small">库存 {{ med.stock }}，预计还可服用 {{ med.stock_days }} 天；复诊还有 {{ med.visit_days }} 天。</p>
+              <p class="small">医嘱：{{ med.doctor_note or "暂无" }}</p>
+              <form method="post" action="{{ url_for('delete_medicine', medicine_id=med.id) }}" onsubmit="return confirm('确定删除这个用药计划吗？')">
+                <button class="btn btn-danger" type="submit">删除</button>
+              </form>
+            </div>
+          {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty">暂无药品。</div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="card" id="checkin">
+      <div class="card-title">
+        <h3>今日服药打卡</h3>
+        <span>点击后自动扣减库存</span>
+      </div>
+
+      {% if medicines %}
+      <div class="checkin-grid">
+        {% for med in medicines %}
+        <div class="checkin-card">
+          <h4>{{ med.name }}</h4>
+          <p>{{ med.take_time }}｜{{ med.relation_to_meal }}｜{{ med.dose }}</p>
+          <p class="small">当前库存：{{ med.stock }}｜预计剩余：{{ med.stock_days }} 天</p>
+
+          {% if med.today_status == "done" %}
+            <div class="status done">今天已服用</div>
+          {% elif med.today_status == "missed" %}
+            <div class="status missed">今天已记录漏服</div>
+          {% else %}
+            <div class="status pending">今天尚未打卡</div>
+          {% endif %}
+
+          <div class="button-row">
+            <form method="post" action="{{ url_for('checkin', medicine_id=med.id) }}">
+              <input type="hidden" name="status" value="done">
+              <button class="btn btn-success" type="submit">已服用</button>
+            </form>
+            <form method="post" action="{{ url_for('checkin', medicine_id=med.id) }}">
+              <input type="hidden" name="status" value="missed">
+              <button class="btn btn-warning" type="submit">记录漏服</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="empty">暂无今日任务。</div>
+      {% endif %}
+    </section>
+
+    <section class="two-col" id="refill">
+      <div class="card">
+        <div class="card-title">
+          <h3>复购与续方提醒</h3>
+          <span>慢病连续服务闭环</span>
+        </div>
+
+        {% if medicines %}
+        <div class="alert-list">
+          {% for med in medicines %}
+          <div class="alert-card">
+            <div class="medicine-head">
+              <div>
+                <h4>{{ med.name }}</h4>
+                <p>剩余 {{ med.stock_days }} 天｜复诊倒计时 {{ med.visit_days }} 天</p>
+              </div>
+              {% if med.stock_days <= 3 or med.visit_days <= 3 %}
+                <span class="tag red">高优先级</span>
+              {% elif med.stock_days <= med.threshold or med.visit_days <= 7 %}
+                <span class="tag orange">近期处理</span>
+              {% else %}
+                <span class="tag green">正常</span>
+              {% endif %}
+            </div>
+
+            <div class="button-row">
+              <button class="btn btn-primary" onclick="loadVisitNote({{ med.id }})">生成复诊话术</button>
+
+              <form method="post" action="{{ url_for('refill', medicine_id=med.id) }}" class="inline-form">
+                <input name="add_count" type="number" min="1" value="30">
+                <input name="new_visit_date" type="date">
+                <button class="btn btn-success" type="submit">模拟复购/续方</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+          <div class="empty">暂无提醒。</div>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h3>复诊沟通话术</h3>
+          <span>可复制给医生</span>
+        </div>
+        <div id="visit-note" class="visit-note">
+          点击左侧“生成复诊话术”，这里会自动生成一段适合线上复诊时发送给医生的话。
+        </div>
+      </div>
+    </section>
+
+    <section class="two-col" id="record">
+      <div class="card">
+        <div class="card-title">
+          <h3>最近 7 天用药记录</h3>
+          <span>来自数据库记录</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>应服</th>
+              <th>已服</th>
+              <th>漏服</th>
+              <th>完成率</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in records %}
+            <tr>
+              <td>{{ r.date }}</td>
+              <td>{{ r.total }}</td>
+              <td>{{ r.done }}</td>
+              <td>{{ r.missed }}</td>
+              <td>{{ r.rate }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <h3>产品安全提示</h3>
+          <span>适老化设计</span>
+        </div>
+        <div class="ai-advice">
+          <b>适老化交互</b>
+          <p>页面采用大字体、高对比按钮、卡片式结构，降低中老年慢病用户的理解和操作成本。</p>
+        </div>
+        <div class="ai-advice light">
+          <b>医疗边界</b>
+          <p>本工具仅用于用药提醒和复诊管理，不替代医生诊断。用户不应自行增减药量。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}
